@@ -1,22 +1,34 @@
+
+from __future__ import annotations
+
 from datetime import date
 from custom_types import RealGEZ
+
 
 class Impiegato:
     _nome: str # noto alla nascita
     _cognome: str # noto alla nascita
     _nascita: date # <<immutable>>, noto alla nascita
     _stipendio: RealGEZ # noto alla nascita
-    _coinvolti: dict['Progetto', 'Coinvolto'] # certamente non noto alla nascita
+    _progetti: dict['Progetto', 'Coinvolto'] # certamente non noto alla nascita
+    _dipartimento: tuple('Dipartimento', 'Afferenza') # certamente non noto alla nascita
+    _dirige: dict['Dipartimento', 'Direzione'] # certamente non noto alla nascita
 
 
     def __init__(self, nome: str, cognome: str, nascita: date, stipendio: RealGEZ) -> None:
         from coinvolto import Coinvolto
         from progetto import Progetto
+        from dipartimento import Dipartimento
+        from afferenza import Afferenza
+        from direzione import Direzione
+
         self.set_nome(nome)
         self.set_cognome(cognome)
         self._nascita = nascita
         self.set_stipendio(stipendio)
         self._progetti = {}
+        self._dipartimento = None
+        self._dirige = {}
 
     def nome(self) -> str:
         return self._nome
@@ -41,12 +53,12 @@ class Impiegato:
 
     def progetti(self) -> dict['Progetto', 'Coinvolto']:
         return self._progetti
-
-    def add_progetto(self, progetto: 'Progetto'):
-        if progetto not in self._progetti:
-            self.progetti[progetto] = 'Coinvolto'(progetto, self)
-        else:
-            raise ValueError("L'impiegato già è coinvolto in un progetto")
-        
-    def get_progetti(self):
-        return f"I progetti sono {self._coinvolti}"
+    
+    def dipartimento(self) -> tuple['Dipartimento', 'Afferenza']:
+        return self._dipartimento
+    
+    def dirige(self) -> dict['Dipartimento', 'Direzione']:
+        return self._dirige
+    
+    def __repr__(self) -> str:
+        return self.nome()

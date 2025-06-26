@@ -1,12 +1,18 @@
+from __future__ import annotations
 from custom_types import Telefono, Indirizzo
-
+from datetime import date
 class Dipartimento:
 
     _nome: str # noto alla nascita
     _telefoni: set[Telefono] # [1..*] noto alla nascita
     _indirizzo: Indirizzo | None  # [0..1] possibilmente non noto alla nascita
+    _direttore : 'Impiegato' # noto alla nascita
+    _impiegati : dict['Impiegato': 'Afferenza'] # certamente non noto alla nascita
+    _direttore : tuple('Impiegato', 'Direzione') # certamente noto alla nascita
 
-    def __init__(self, nome: str, tel: Telefono, ind: Indirizzo|None) -> None:
+    def __init__(self, nome: str, tel: Telefono, ind: Indirizzo|None, direttore: 'Impiegato') -> None:
+        from impiegato import Impiegato
+
         self.set_nome(nome)
 
         # opzione 1
@@ -16,6 +22,9 @@ class Dipartimento:
         # self.set_telefoni({tel})
 
         self.set_indirizzo(ind)
+        self._impiegati = {}
+        self._direttore = None
+        self.set_direttore(direttore)
 
     def nome(self) -> str:
         return self._nome
@@ -53,6 +62,36 @@ class Dipartimento:
             ind_str: str = f"con sede in {self.indirizzo()}"
 
         return f"Dipartimento '{self.nome()}' {ind_str} e numeri telefono: {self.telefoni()}"
+    
+    def add_impiegato(self, impiegato: 'Impiegato', data: date) -> None:
+        from afferenza import Afferenza
+        if impiegato not in self._impiegati:
+            afferenza: 'Afferenza' = Afferenza(self, impiegato, data)
+            self._impiegati[impiegato] = afferenza
+            impiegato._dipartimento = (self, afferenza)
+        else:
+            raise ValueError("L'impiegato lavora già nel dipartimento")
+        
+    def remove_impiegati(self, impiegato:'Impiegato') -> None:
+        if impiegato in self._impiegati:
+            self._impiegati.pop(impiegato)
+            impiegato._dipartimento = None
+        else:
+            raise ValueError("L'impiegato non lavora nel diparitmento")
+        
+    def impiegati(self) -> dict['Impiegato', 'Afferenza']:
+        return self._impiegati
+    
+    def set_direttore(self, direttore: 'Impiegato') -> None:
+        from direzione import Direzione
+        if self._direttore:
+            self._direttore[0]._dirige.pop(self)
+        link = Direzione(direttore, self)
+        self._direttore = (direttore, link)
+        direttore._dirige[self] = link
+
+    def direttore(self) -> tuple('Impiegato', 'Direzione'):
+        return self._direttore
 
 
 if __name__ == "__main__":

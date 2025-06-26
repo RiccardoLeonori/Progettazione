@@ -1,18 +1,19 @@
-from impiegato import Impiegato
-from progetto import Progetto
+from __future__ import annotations
+
 
 
 class Coinvolto():
-    
-    _progetti: Progetto
-    _impiegato: Impiegato
+    _progetto: 'Progetto' # immutabile noto alla nascita
+    _impiegato: 'Impiegato' # immutabile noto alla nascita
 
-    def __init__(self, progetto: Progetto, impiegato: Impiegato):
+    def __init__(self, progetto: 'Progetto', impiegato: 'Impiegato'):
+        from impiegato import Impiegato
+        from progetto import Progetto
         self._progetto = progetto
-        self._impiegato = impiegato
+        self.self_impiegato = impiegato
 
-    def progetto(self) -> Progetto:
+    def progetto(self) -> 'Progetto':
         return self._progetto
-    
-    def impiegato(self) -> Impiegato:
+
+    def impiegato(self) -> 'Impiegato':
         return self._impiegato
