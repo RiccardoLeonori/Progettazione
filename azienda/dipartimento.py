@@ -14,13 +14,8 @@ class Dipartimento:
         from impiegato import Impiegato
 
         self.set_nome(nome)
-
-        # opzione 1
         self._telefoni = set()
         self.add_telefono(tel)
-        # opzione 2
-        # self.set_telefoni({tel})
-
         self.set_indirizzo(ind)
         self._impiegati = {}
         self._direttore = None
