@@ -13,11 +13,9 @@ class Persona:
     def __init__(self, *, nome: str, cognome: str,
                  cf: list[CodiceFiscale],
                  genere: Genere,
-                 maternita: IntGEZ|None=None,
-                 pos: PosizioneMilitare|None=None) -> None:
+                 maternita: IntGEZ|None=None) -> None:
         self._nome = nome
         self._cognome = cognome
-        self._genere = None
         if not cf:
             raise ValueError("La persona deve avere almeno un codice fiscale!")
 
@@ -25,11 +23,6 @@ class Persona:
             if maternita is None:
                 raise ValueError("È obbligatorio fornire il numero di maternità per le donne")
             self.diventa_donna(maternita)
-        
-        if genere == Genere.uomo:
-            if pos is None:
-                raise ValueError("È obbligatorio fornire la posizione militare per gli uomini")
-            self.diventa_uomo(pos)
 
     def diventa_donna(self, maternita: IntGEZ) -> None:
         if self._genere == Genere.donna:
@@ -39,13 +32,20 @@ class Persona:
         self.__dimentica_uomo()
 
     def __dimentica_uomo(self) -> None:
-        # metodo privato
+        # Questo metodo è privato perché non deve essere mai invocato dall'esterno, ma solo all'interno di questa classe
         self._posizione_mil = None
 
     def set_maternita(self, maternita: IntGEZ) -> None:
         if not self._genere == Genere.donna:
             raise RuntimeError("Gli uomini non hanno il numero di maternità!")
-        self._maternita = maternita
+
+    def __dimentica_donna(self) -> None:
+        self._maternita = None
+
+    def set_posizione_mil(self, pos: PosizioneMilitare) -> None:
+        if not self._genere == Genere.uomo:
+            raise RuntimeError("Le donne non hanno la posizione militare!")
+        self._posizione_mil = pos
 
     def diventa_uomo(self, pos: PosizioneMilitare) -> None:
         if self._genere == Genere.uomo:
@@ -53,15 +53,6 @@ class Persona:
         self._genere = Genere.uomo
         self.set_posizione_mil(pos)
         self.__dimentica_donna()
-
-    def __dimentica_donna(self) -> None:
-        self._maternita = None
-
-
-    def set_posizione_mil(self, pos: PosizioneMilitare) -> None:
-        if not self._genere == Genere.uomo:
-            raise RuntimeError("Le donne non hanno la posizione militare!")
-        self._posizione_mil = pos
 
     def nome(self) -> str:
         return self._nome
@@ -87,19 +78,19 @@ class Impiegato(Persona):
     _stipendio: RealGEZ
     _ruolo: Ruolo
     _is_responsabile: bool
-    _resp_prog: dict['Progetto': 'Resp_prog']
+    _resp_progetto: dict['Progetto': 'Resp_progetto']
     
     def __init__(self, *, nome: str, cognome: str, cf: list[CodiceFiscale], genere: Genere, maternita: IntGEZ|None=None, 
-               pos: PosizioneMilitare|None=None, stipendio: RealGEZ, ruolo: Ruolo) -> None:
-        super().__init__(nome = nome, cognome = cognome, cf = cf, genere = genere, maternita = maternita, pos = pos)
-        from resp_prog import Resp_Prog
+               posizione: PosizioneMilitare|None=None, stipendio: RealGEZ, ruolo: Ruolo) -> None:
+        super().__init__(nome = nome, cognome = cognome, cf = cf, genere = genere, maternita = maternita, posizione = posizione)
+        from impiegati_e_studenti.resp_progetto import Resp_Progetto
         self.set_stipendio(stipendio)
         self.set_ruolo(ruolo)
         if ruolo == Ruolo.progettista:
             self._is_responsabile = False
         else:
             self._is_responsabile = None
-        self._resp_prog = {}
+        self._resp_progetto = {}
 
     def set_stipendio(self, stipendio: RealGEZ) -> None:
         self._stipendio = stipendio
@@ -107,8 +98,8 @@ class Impiegato(Persona):
     def set_ruolo(self, ruolo: Ruolo) -> None:
         self._ruolo = ruolo
 
-    def set_responsabile(self, resp: bool) -> None:
-        self._is_responsabile = resp
+    def set_responsabile(self, responsabile: bool) -> None:
+        self._is_responsabile = responsabile
 
     def stipendio(self) -> RealGEZ:
         return self._stipendio
@@ -119,8 +110,8 @@ class Impiegato(Persona):
     def is_responsabile(self) -> bool:
         return self._is_responsabile
     
-    def progetti(self) -> dict['Progetto', 'Resp_Prog']:
-        return self._resp_prog
+    def progetti(self) -> dict['Progetto', 'Resp_Progetto']:
+        return self._resp_progetto
     
     def __repr__(self) -> str:
         return self.nome()
@@ -128,10 +119,14 @@ class Impiegato(Persona):
 class Studente(Persona):
     _matricola: IntGEZ
     _matricole: set[IntGEZ] = set()
-    def __init__(self, *, nome: str, cognome: str, cf: list[CodiceFiscale], genere: Genere, maternita: IntGEZ|None=None, pos: PosizioneMilitare|None=None, matricola: IntGZ) -> None:
+    def __init__(self, *, nome: str, cognome: str, 
+                 cf: list[CodiceFiscale], genere: Genere, 
+                 maternita: IntGEZ|None=None, 
+                 posizione: PosizioneMilitare|None=None, 
+                 matricola: IntGEZ) -> None:
         if matricola in self._matricole:
-            raise ValueError("Esiste già uno studente con questo numero di matricola!")
-        super().__init__(nome, cognome, cf, genere, maternita, pos)
+            raise ValueError("Esiste già questa matricola!")
+        super().__init__(nome, cognome, cf, genere, maternita, posizione)
         self._matricola = matricola
         self._matricole.add(matricola)
 
@@ -139,50 +134,31 @@ class Studente(Persona):
         return self._matricola
 
 class Progetto:
-    _nome: str
-    _resp_prog: dict[Impiegato, 'Resp_Prog']
+    _resp_progetto: str
+    
     def __init__(self, nome: str) -> None:
-        self.set_nome(nome)
-        self._resp_prog = {}
+        self._resp_progetto_ = nome
 
-    def set_nome(self, nome: str) -> None:
-        self._nome = nome
-    
-    def nome(self) -> str:
-        return self._nome
-    
-    def add_responsabile(self, impiegato: 'Impiegato') -> None:
-        from resp_prog import Resp_Prog
-        if impiegato.ruolo() != Ruolo.progettista:
-            raise ValueError("L'impiegato non è un progettista!")
-        if impiegato not in self._resp_prog:
-            resp: 'Resp_Prog' = Resp_Prog(self, impiegato)
-            self._resp_prog[impiegato] = resp
-            impiegato._resp_prog[self] = resp
-            impiegato.set_responsabile(True)
-        else:
-            raise ValueError("L'impiegato è già responsabile del progetto!")
+    def set_resp_progetto(self, nome: str) -> None:
+        if self._resp_progetto != None:
+            raise ValueError("Esiste già un capo progetto")
+        self._resp_progetto = nome
         
-    def remove_responsabile(self, impiegato:'Impiegato') -> None:
-        if impiegato in self._resp_prog:
-            self._resp_prog.pop(impiegato)
-            impiegato._resp_prog = None
-        else:
-            raise ValueError("L'impiegato non è responsabile del progetto!")
-        
-    def responsabili(self) -> dict['Impiegato', 'Resp_Prog']:
-        return self._resp_prog
-    
-    def __repr__(self) -> str:
-        return self.nome()
+    def remove_resp_progetto(self, nome: str) -> None:
+        if self._resp_progetto == None:
+            raise ValueError("Non esiste un capo progetto")
+        self._resp_progetto = None
+
+    def responsabile(self) -> str:
+        return self._resp_progetto
 
 class PosizioneMilitare:
     _posizioni_militari: set[str] = set()
-    _nome: str # <<imm>> 
+    _nome: str
     
     def __init__(self, nome: str) -> None:
         if nome in PosizioneMilitare._posizioni_militari:
-            raise ValueError("Posizione militare già esistente!")
+            raise ValueError("La posizione militare esiste già!")
         self._nome = nome
         PosizioneMilitare._posizioni_militari.add(nome)
 
@@ -206,16 +182,6 @@ if __name__ == "__main__":
     imp = Impiegato(nome="Giulia", cognome="Verdi", cf=[CodiceFiscale("VRDGLL90A01H501Z")],
                     genere=Genere.donna, maternita=IntGEZ(2), stipendio=RealGEZ(1200.50), ruolo=Ruolo.progettista)
     print(imp.nome(), imp.cognome(), imp.cf(), imp.genere(), imp.maternita(), imp.pos_mil(), imp.stipendio(), imp.ruolo(), imp.is_responsabile())
-
-    print("=== TEST Progetto e Responsabile ===")
-    progetto = Progetto("Progetto Alfa")
-    print("Nome progetto:", progetto.nome())
-    progetto.add_responsabile(imp)
-    print("Responsabili:", progetto.responsabili())
-    print("Progetti impiegato:", imp.progetti())
-    progetto.remove_responsabile(imp)
-    print("Responsabili dopo rimozione:", progetto.responsabili())
-    print("Progetti impiegato dopo rimozione:", imp.progetti())
 
     print("=== TEST Studente ===")
     stud = Studente(nome="Marco", cognome="Neri", cf=[CodiceFiscale("NRIMRC92A01H501W")],
