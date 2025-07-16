@@ -15,48 +15,6 @@ class Utente:
         self.post_bid: List['Bid'] = []
         self.post_pubblicati: List['PostOggetto'] = []
         self.post_feedback: List['PostConFeedback'] = []
-
-    def popolarita(self, i: datetime) -> float:
-
-        P = self.post_pubblicati
-
-        start_time = i - timedelta(days=12)
-
-        Ucs_set: Set[UtentePrivato] = set()
-        for p in P:
-            for (u, cs_istante) in getattr(p, 'cs_utenti', []):
-                if start_time <= cs_istante <= i:
-                    Ucs_set.add(u)
-
-        Ua_set: Set[UtentePrivato] = set()
-        for p in P:
-            for asta_bid in getattr(p, 'asta_bid', []):  # lista di Bid collegati a p
-                b = asta_bid
-                if start_time <= b.istante <= i:
-                    Ua_set.add(b.utente)
-
-        result = len(Ucs_set) + len(Ua_set)
-        return result
-        
-
-    def affidabilita(self, i: datetime) -> float:
-
-        PF = [pf for pf in self.post_feedback if pf.istante <= i]
-
-        if not PF:
-            raise ValueError("Precondizione non soddisfatta: PF deve avere almeno un elemento")
-
-        S = sum(pf.voto for pf in PF)
-        FT = len(PF)
-        m = S / FT
-        PFN = [pf for pf in PF if pf.voto <= 2]
-        FN = len(PFN)
-        z = FN / FT
-
-        result = (m * (1 - z)) / 5.0
-        # Clip tra 0 e 1 per sicurezza
-        return max(0.0, min(1.0, result))
-
         
     
 class UtentePrivato(Utente):
